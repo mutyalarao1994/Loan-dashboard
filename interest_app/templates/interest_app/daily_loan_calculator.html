@@ -1,0 +1,248 @@
+{% extends "interest_app/base.html" %}
+
+{% block title %}Daily Loan Calculator{% endblock %}
+
+{% block active_daily %}active{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <div class="page-header">
+        <h1>&#128198; Daily Loan Calculator</h1>
+        <p>Interest accrues daily until marked as paid. Formula: &#8377;(Principal / 1000) &times; Rate per day.</p>
+    </div>
+
+    {% if loans %}
+    <div class="summary-grid">
+        <div class="summary-card accent-primary">
+            <div class="sc-label">Total Principal</div>
+            <div class="sc-value amount">&#8377;{{ total_principal|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card accent-accent">
+            <div class="sc-label">Daily Interest</div>
+            <div class="sc-value amount">&#8377;{{ total_daily_interest|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card accent-warning">
+            <div class="sc-label">Total Interest</div>
+            <div class="sc-value amount">&#8377;{{ total_interest|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card accent-success">
+            <div class="sc-label">Grand Total</div>
+            <div class="sc-value amount">&#8377;{{ grand_total|floatformat:2 }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card-clean">
+        <div class="card-title">
+            {% if edit_loan %}&#9999;&#65039; Edit Daily Loan{% else %}&#65291; Add New Daily Loan{% endif %}
+        </div>
+
+        <div class="formula-hint">
+            <span>&#128207;</span>
+            <span>Formula:&nbsp;
+                <code>Daily Interest = (Principal / 1000) &times; Rate</code>
+                &nbsp;&mdash;&nbsp;Interest accrues every day until the loan is marked <strong>Paid</strong>.
+            </span>
+        </div>
+
+        {% if edit_loan %}
+        <div class="edit-banner">
+            &#9888;&#65039; Editing record for <strong>&nbsp;{{ edit_loan.name }}</strong>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% if edit_loan %}{% url 'edit_daily_loan' edit_loan.id %}{% else %}{% url 'add_daily_loan' %}{% endif %}">
+            {% csrf_token %}
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Borrower Name</label>
+                    <input type="text" name="name" class="form-control"
+                           value="{{ edit_loan.name|default:'' }}" placeholder="e.g. Rahul" required>
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Principal Amount (&#8377;)</label>
+                    <input type="number" step="0.01" min="0.01" name="amount" class="form-control"
+                           value="{{ edit_loan.amount|default:'' }}" placeholder="e.g. 100000" required>
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Daily Rate (per &#8377;1000)</label>
+                    <input type="number" step="0.001" min="0.001" name="daily_interest_rate"
+                           value="{{ edit_loan.daily_interest_rate|default:'1.5' }}"
+                           class="form-control" placeholder="e.g. 1.5">
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Start Date</label>
+                    <input type="date" id="id_start_date" name="start_date" class="form-control"
+                           value="{{ edit_loan.start_date|date:'Y-m-d' }}" required>
+                </div>
+                <div class="col-12 col-sm-6 col-lg-auto">
+                    <label class="form-label-sm">Days so far</label>
+                    <input type="text" id="days_display" class="form-control" readonly
+                           style="font-weight:600;color:var(--primary);text-align:center;min-width:90px;
+                                  cursor:default;background:var(--bg);" value="&mdash;">
+                </div>
+                <div class="col-12 col-sm-auto d-flex gap-2">
+                    {% if edit_loan %}
+                    <button type="submit" class="btn-warning-custom">&#10004; Update</button>
+                    <a href="{% url 'daily_loan_calculator' %}" class="btn-secondary-custom">&#10005; Cancel</a>
+                    {% else %}
+                    <button type="submit" class="btn-primary-custom">&#65291; Add Loan</button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if loans %}
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Principal</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Days</th>
+                    <th>Rate (&#8377;/1000)</th>
+                    <th>Daily Int. &#8377;</th>
+                    <th>Total Int. &#8377;</th>
+                    <th>Total Amt &#8377;</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                <tr>
+                    <td><strong>{{ loan.name }}</strong></td>
+                    <td class="amount">&#8377;{{ loan.amount }}</td>
+                    <td>{{ loan.start_date }}</td>
+                    <td>{{ loan.effective_end_date }}</td>
+                    <td>{{ loan.number_of_days }} day{{ loan.number_of_days|pluralize }}</td>
+                    <td>{{ loan.daily_interest_rate }}</td>
+                    <td class="amount">&#8377;{{ loan.daily_interest_amount|floatformat:2 }}</td>
+                    <td class="amount">&#8377;{{ loan.total_interest|floatformat:2 }}</td>
+                    <td class="amount">&#8377;{{ loan.total_amount|floatformat:2 }}</td>
+                    <td>
+                        <form method="post" action="{% url 'toggle_daily_loan_paid' loan.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="{% if loan.is_paid %}toggle-paid{% else %}toggle-unpaid{% endif %}">
+                                {% if loan.is_paid %}&#10003; Paid{% else %}&#9679; Unpaid{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                            <button class="btn-expand" onclick="toggleBreakdown({{ loan.id }})">
+                                &#128200; Days
+                            </button>
+                            <a href="{% url 'edit_daily_loan' loan.id %}" class="btn-table-edit">&#9998; Edit</a>
+                            <a href="{% url 'delete_daily_loan' loan.id %}" class="btn-table-delete">&#10005; Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                <!-- Day-by-day breakdown row -->
+                <tr id="breakdown-{{ loan.id }}" style="display:none;">
+                    <td colspan="11" style="padding:0;border-top:none;">
+                        <div class="breakdown-panel open">
+                            <p style="font-size:.78rem;font-weight:600;text-transform:uppercase;
+                                      letter-spacing:.6px;color:var(--text-secondary);margin-bottom:.75rem;">
+                                Day-by-Day Breakdown &mdash; {{ loan.name }}
+                                {% if not loan.is_paid %}
+                                <span style="color:var(--danger);font-weight:500;font-size:.75rem;
+                                            margin-left:.5rem;text-transform:none;letter-spacing:0;">
+                                    (Live &mdash; updates each day)
+                                </span>
+                                {% else %}
+                                <span style="color:var(--success);font-weight:500;font-size:.75rem;
+                                            margin-left:.5rem;text-transform:none;letter-spacing:0;">
+                                    (Frozen on {{ loan.paid_date }})
+                                </span>
+                                {% endif %}
+                            </p>
+                            <div style="overflow-x:auto;">
+                                <table class="data-table breakdown-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Day</th>
+                                            <th>Date</th>
+                                            <th>Principal &#8377;</th>
+                                            <th>Daily Interest &#8377;</th>
+                                            <th>Total Interest &#8377;</th>
+                                            <th>Total Amount &#8377;</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in loan.day_rows %}
+                                        <tr>
+                                            <td>Day {{ row.day }}</td>
+                                            <td>{{ row.date }}</td>
+                                            <td class="amount">&#8377;{{ row.principal|floatformat:2 }}</td>
+                                            <td class="amount">&#8377;{{ row.daily_interest|floatformat:2 }}</td>
+                                            <td class="amount">&#8377;{{ row.total_interest|floatformat:2 }}</td>
+                                            <td class="amount">&#8377;{{ row.total_amount|floatformat:2 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        <tr class="day-total-row">
+                                            <td colspan="2"><strong>Total</strong></td>
+                                            <td class="amount">&#8377;{{ loan.amount|floatformat:2 }}</td>
+                                            <td class="amount">&#8377;{{ loan.daily_interest_amount|floatformat:2 }}</td>
+                                            <td class="amount">&#8377;{{ loan.total_interest|floatformat:2 }}</td>
+                                            <td class="amount">&#8377;{{ loan.total_amount|floatformat:2 }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td>Grand Total</td>
+                    <td class="amount">&#8377;{{ total_principal|floatformat:2 }}</td>
+                    <td></td><td></td><td></td><td></td>
+                    <td class="amount">&#8377;{{ total_daily_interest|floatformat:2 }}</td>
+                    <td class="amount">&#8377;{{ total_interest|floatformat:2 }}</td>
+                    <td class="amount">&#8377;{{ grand_total|floatformat:2 }}</td>
+                    <td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">&#128203;</div>
+        <p>No daily loans recorded yet. Add your first loan using the form above.</p>
+    </div>
+    {% endif %}
+
+</div><!-- /page-wrapper -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function toggleBreakdown(loanId) {
+        var row = document.getElementById('breakdown-' + loanId);
+        if (!row) return;
+        row.style.display = (row.style.display === 'none' || row.style.display === '') ? 'table-row' : 'none';
+    }
+
+    /* Show "days so far" live, inclusive of both start and today */
+    function updateDaysDisplay() {
+        var startEl = document.getElementById('id_start_date');
+        var dispEl  = document.getElementById('days_display');
+        if (!startEl || !dispEl) return;
+        var start = startEl.value;
+        if (!start) {
+            dispEl.value = '\u2014';
+            return;
+        }
+        var diff = Math.floor((Date.now() - new Date(start)) / 86400000) + 1;
+        dispEl.value = diff >= 1 ? diff + ' day' + (diff !== 1 ? 's' : '') : '\u2014';
+        dispEl.style.color = diff >= 1 ? 'var(--primary)' : 'var(--danger)';
+    }
+    document.getElementById('id_start_date').addEventListener('change', updateDaysDisplay);
+    updateDaysDisplay();
+</script>
+{% endblock %}

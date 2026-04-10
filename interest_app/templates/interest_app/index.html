@@ -1,0 +1,197 @@
+{% extends "interest_app/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block active_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <div class="page-header">
+        <h1>&#127968; Dashboard</h1>
+        <p>Overview of all pending obligations and business totals.</p>
+    </div>
+
+    <!-- ── Monthly Loans Summary ─────────────────────────── -->
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2>&#128197; Monthly Loans</h2>
+            <a href="{% url 'monthly_loans' %}" class="btn-secondary-custom"
+               style="padding:.4rem .9rem;font-size:.82rem;">
+                Manage &rarr;
+            </a>
+        </div>
+        {% if loans %}
+        <div class="summary-grid">
+            <div class="summary-card accent-primary">
+                <div class="sc-label">Total Principal</div>
+                <div class="sc-value amount">&#8377;{{ total_amount|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card accent-accent">
+                <div class="sc-label">Monthly Interest</div>
+                <div class="sc-value amount">&#8377;{{ monthly_interest|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card accent-warning">
+                <div class="sc-label">Total Interest Accrued</div>
+                <div class="sc-value amount">&#8377;{{ total_monthly_interest|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card accent-success">
+                <div class="sc-label">Grand Total Payable</div>
+                <div class="sc-value amount">&#8377;{{ grand_total|floatformat:2 }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state-inline">
+            No monthly loans recorded yet.
+            <a href="{% url 'monthly_loans' %}" class="btn-link">Add your first loan &rarr;</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <hr class="home-divider">
+
+    <!-- ── Daily Loans — Pending (is_paid=False) ─────────── -->
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2>
+                &#128198; Daily Loans &mdash; Pending
+                {% if pending_daily %}
+                <span class="badge-count">{{ pending_daily|length }}</span>
+                {% endif %}
+            </h2>
+            <a href="{% url 'daily_loan_calculator' %}" class="btn-secondary-custom"
+               style="padding:.4rem .9rem;font-size:.82rem;">
+                Manage &rarr;
+            </a>
+        </div>
+        {% if pending_daily %}
+        <div class="summary-grid">
+            <div class="summary-card accent-primary">
+                <div class="sc-label">Pending Principal</div>
+                <div class="sc-value amount">&#8377;{{ d_pending_principal|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card accent-accent">
+                <div class="sc-label">Daily Interest</div>
+                <div class="sc-value amount">&#8377;{{ d_pending_daily_interest|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card accent-warning">
+                <div class="sc-label">Total Interest</div>
+                <div class="sc-value amount">&#8377;{{ d_pending_interest|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card accent-danger">
+                <div class="sc-label">Amount to Collect</div>
+                <div class="sc-value amount">&#8377;{{ d_pending_grand_total|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div class="table-wrapper" style="margin-bottom:.75rem;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Principal &#8377;</th>
+                        <th>Start</th>
+                        <th>Days Today</th>
+                        <th>Daily Int. &#8377;</th>
+                        <th>Total Int. &#8377;</th>
+                        <th>Total &#8377;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dl in pending_daily %}
+                    <tr>
+                        <td><strong>{{ dl.name }}</strong></td>
+                        <td class="amount">&#8377;{{ dl.amount|floatformat:2 }}</td>
+                        <td>{{ dl.start_date }}</td>
+                        <td>{{ dl.number_of_days }} day{{ dl.number_of_days|pluralize }}</td>
+                        <td class="amount">&#8377;{{ dl.daily_interest_amount|floatformat:2 }}</td>
+                        <td class="amount">&#8377;{{ dl.total_interest|floatformat:2 }}</td>
+                        <td class="amount">&#8377;{{ dl.total_amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-inline">
+            No pending daily loans &#128512; All paid up, or
+            <a href="{% url 'daily_loan_calculator' %}" class="btn-link">add a new loan &rarr;</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <hr class="home-divider">
+
+    <!-- ── Sea Foods — Pending (is_payment_received=False) ── -->
+    <div class="home-section">
+        <div class="home-section-header">
+            <h2>
+                &#129408; Sea Foods &mdash; Pending
+                {% if sf_pending %}
+                <span class="badge-count">{{ sf_pending|length }}</span>
+                {% endif %}
+            </h2>
+            <a href="{% url 'seafoods' %}" class="btn-secondary-custom"
+               style="padding:.4rem .9rem;font-size:.82rem;">
+                Manage &rarr;
+            </a>
+        </div>
+        {% if sf_pending %}
+        <div class="summary-grid">
+            <div class="summary-card accent-teal">
+                <div class="sc-label">Pending Commission</div>
+                <div class="sc-value amount">&#8377;{{ sf_pending_commission|floatformat:2 }}</div>
+            </div>
+            <div class="summary-card accent-danger">
+                <div class="sc-label">Pending Amount Paid</div>
+                <div class="sc-value amount">&#8377;{{ sf_pending_amount_paid|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div class="table-wrapper" style="margin-bottom:.75rem;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>KGs</th>
+                        <th>Amount Paid &#8377;</th>
+                        <th>Rate/KG</th>
+                        <th>Commission &#8377;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sf in sf_pending %}
+                    <tr>
+                        <td><strong>{{ sf.customer_name }}</strong></td>
+                        <td>{{ sf.kgs }}</td>
+                        <td class="amount">&#8377;{{ sf.amount_paid|floatformat:2 }}</td>
+                        <td>{{ sf.kg_per_commission }}</td>
+                        <td class="amount">&#8377;{{ sf.total_commission|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state-inline">
+            No pending sea food payments &#128512; All clear, or
+            <a href="{% url 'seafoods' %}" class="btn-link">add a new entry &rarr;</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ── All-time Earned Overview ─────────────────────── -->
+    <div class="earned-section">
+        <div class="section-label">&#128200; Overall Business Totals &mdash; All Time</div>
+        <div class="earned-grid">
+            <div class="earned-card">
+                <div class="ec-label">&#128198; Total Daily Interest Earned</div>
+                <div class="ec-value amount">&#8377;{{ d_all_total_interest|floatformat:2 }}</div>
+            </div>
+            <div class="earned-card">
+                <div class="ec-label">&#129408; Total Commission Earned</div>
+                <div class="ec-value amount">&#8377;{{ sf_all_total_commission|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /page-wrapper -->
+{% endblock %}

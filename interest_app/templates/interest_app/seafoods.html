@@ -1,0 +1,176 @@
+{% extends "interest_app/base.html" %}
+
+{% block title %}Kushal Sea Foods{% endblock %}
+
+{% block active_seafoods %}active{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+    <div class="page-header">
+        <h1>&#129408; Kushal Sea Foods</h1>
+        <p>Track prawn purchases, commissions, and payment status.</p>
+    </div>
+
+    {% if records %}
+    <div class="summary-grid">
+        <div class="summary-card accent-teal">
+            <div class="sc-label">Total KGs</div>
+            <div class="sc-value">{{ total_kgs|floatformat:3 }} kg</div>
+        </div>
+        <div class="summary-card accent-primary">
+            <div class="sc-label">Total Amount Paid</div>
+            <div class="sc-value amount">&#8377;{{ total_amount_paid|floatformat:2 }}</div>
+        </div>
+        <div class="summary-card accent-success">
+            <div class="sc-label">Total Commission</div>
+            <div class="sc-value amount">&#8377;{{ total_commission|floatformat:2 }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card-clean">
+        <div class="card-title">
+            {% if edit_record %}&#9999;&#65039; Edit Record{% else %}&#65291; Add New Entry{% endif %}
+        </div>
+
+        <div class="formula-hint">
+            <span>&#128207;</span>
+            <span>Formula:&nbsp;
+                <code>Total Commission = KGs &times; Rate per KG</code>
+                &nbsp;&mdash;&nbsp;auto-calculated below.
+            </span>
+        </div>
+
+        {% if edit_record %}
+        <div class="edit-banner">
+            &#9888;&#65039; Editing record for <strong>&nbsp;{{ edit_record.customer_name }}</strong>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% if edit_record %}{% url 'edit_seafood' edit_record.id %}{% else %}{% url 'add_seafood' %}{% endif %}">
+            {% csrf_token %}
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Customer Name</label>
+                    <input type="text" name="customer_name" class="form-control"
+                           value="{{ edit_record.customer_name|default:'' }}" placeholder="e.g. Suresh" required>
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Prawn Count</label>
+                    <input type="number" step="1" min="0" name="prawn_count" class="form-control"
+                           value="{{ edit_record.prawn_count|default:0 }}" placeholder="e.g. 500">
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">KGs</label>
+                    <input type="number" step="0.001" min="0.001" name="kgs" id="sf_kgs" class="form-control"
+                           value="{{ edit_record.kgs|default:'' }}" placeholder="e.g. 25.500" required
+                           oninput="sfCalcCommission()">
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Amount Paid (&#8377;)</label>
+                    <input type="number" step="0.01" min="0" name="amount_paid" class="form-control"
+                           value="{{ edit_record.amount_paid|default:0 }}" placeholder="e.g. 5000">
+                </div>
+                <div class="col-12 col-sm-6 col-lg">
+                    <label class="form-label-sm">Rate per KG (&#8377;)</label>
+                    <input type="number" step="0.01" min="0.01" name="kg_per_commission" id="sf_rate" class="form-control"
+                           value="{{ edit_record.kg_per_commission|default:'' }}" placeholder="e.g. 20" required
+                           oninput="sfCalcCommission()">
+                </div>
+                <div class="col-12 col-sm-6 col-lg-auto">
+                    <label class="form-label-sm">Commission (auto)</label>
+                    <div id="sf_commission" style="padding:.55rem .85rem;background:var(--bg);border:1.5px solid var(--border);
+                         border-radius:8px;font-size:.9rem;font-weight:600;color:var(--success);min-width:100px;text-align:center;">
+                        &#8377; &mdash;
+                    </div>
+                </div>
+                <div class="col-12 col-sm-auto d-flex gap-2">
+                    {% if edit_record %}
+                    <button type="submit" class="btn-warning-custom">&#10004; Update</button>
+                    <a href="{% url 'seafoods' %}" class="btn-secondary-custom">&#10005; Cancel</a>
+                    {% else %}
+                    <button type="submit" class="btn-primary-custom">&#65291; Add Entry</button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if records %}
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>Prawn Count</th>
+                    <th>KGs</th>
+                    <th>Amount Paid &#8377;</th>
+                    <th>Rate/KG &#8377;</th>
+                    <th>Total Commission &#8377;</th>
+                    <th>Date</th>
+                    <th>Payment</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sf in records %}
+                <tr>
+                    <td><strong>{{ sf.customer_name }}</strong></td>
+                    <td>{{ sf.prawn_count }}</td>
+                    <td>{{ sf.kgs }}</td>
+                    <td class="amount">&#8377;{{ sf.amount_paid|floatformat:2 }}</td>
+                    <td>{{ sf.kg_per_commission }}</td>
+                    <td class="amount">&#8377;{{ sf.total_commission|floatformat:2 }}</td>
+                    <td>{{ sf.created_at }}</td>
+                    <td>
+                        <form method="post" action="{% url 'toggle_seafood_payment' sf.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="{% if sf.is_payment_received %}toggle-rcvd{% else %}toggle-not-rcvd{% endif %}">
+                                {% if sf.is_payment_received %}&#10003; Received{% else %}&#9889; Pending{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                            <a href="{% url 'edit_seafood' sf.id %}" class="btn-table-edit">&#9998; Edit</a>
+                            <a href="{% url 'delete_seafood' sf.id %}" class="btn-table-delete">&#10005; Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td>Grand Total</td>
+                    <td></td>
+                    <td>{{ total_kgs|floatformat:3 }} kg</td>
+                    <td class="amount">&#8377;{{ total_amount_paid|floatformat:2 }}</td>
+                    <td></td>
+                    <td class="amount">&#8377;{{ total_commission|floatformat:2 }}</td>
+                    <td></td><td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">&#129408;</div>
+        <p>No sea foods records yet. Add your first entry using the form above.</p>
+    </div>
+    {% endif %}
+
+</div><!-- /page-wrapper -->
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function sfCalcCommission() {
+        var kgs  = parseFloat(document.getElementById('sf_kgs').value) || 0;
+        var rate = parseFloat(document.getElementById('sf_rate').value) || 0;
+        var el   = document.getElementById('sf_commission');
+        var val  = kgs * rate;
+        el.textContent = '\u20B9 ' + (val > 0 ? val.toFixed(2) : '\u2014');
+        el.style.color = val > 0 ? 'var(--success)' : 'var(--text-secondary)';
+    }
+    sfCalcCommission();
+</script>
+{% endblock %}
