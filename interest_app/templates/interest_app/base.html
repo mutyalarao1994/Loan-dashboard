@@ -404,29 +404,47 @@
         @media (max-width: 767px) {
             .hamburger { display: flex; }
             .nav-links {
+                /* Full-width dropdown BELOW the nav bar */
+                position: absolute;
+                top: 60px;
+                left: 0;
+                right: 0;
                 flex-direction: column;
                 align-items: stretch;
                 gap: 0;
                 margin-left: 0;
-                /* slide-down animation */
+                background: var(--surface);
+                box-shadow: 0 8px 24px rgba(0,0,0,.1);
+                border-top: 1px solid var(--border);
+                /* Slide-down animation */
                 max-height: 0;
                 overflow: hidden;
-                transition: max-height .35s cubic-bezier(.4,0,.2,1);
-                border-top: 1px solid transparent;
+                opacity: 0;
+                transition: max-height .32s cubic-bezier(.4,0,.2,1),
+                            opacity .22s ease;
             }
             .nav-links.mobile-open {
-                max-height: 260px;
-                border-top-color: var(--border);
+                max-height: 320px;
+                opacity: 1;
             }
             .nav-link-item {
-                padding: .85rem 1.5rem;
+                padding: 1rem 1.5rem;
                 border-radius: 0;
                 font-size: .925rem;
                 border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: center;
+                gap: .5rem;
+                transition: background .15s, padding-left .15s;
             }
             .nav-link-item:last-child { border-bottom: none; }
+            .nav-link-item:hover {
+                background: var(--bg);
+            }
             .nav-link-item.active {
                 background: var(--primary-light);
+                color: var(--primary);
+                font-weight: 600;
                 border-left: 3px solid var(--primary);
                 padding-left: calc(1.5rem - 3px);
             }
@@ -443,17 +461,17 @@
             <span class="brand-icon">&#8377;</span>
             Interest Calc
         </a>
-        <div class="nav-links" id="nav-menu">
-            <a href="/" class="nav-link-item {% block active_dashboard %}{% endblock %}">&#127968; Dashboard</a>
-            <a href="{% url 'monthly_loans' %}" class="nav-link-item {% block active_monthly %}{% endblock %}">&#128197; Monthly Loans</a>
-            <a href="{% url 'daily_loan_calculator' %}" class="nav-link-item {% block active_daily %}{% endblock %}">&#128198; Daily Loans</a>
-            <a href="{% url 'seafoods' %}" class="nav-link-item {% block active_seafoods %}{% endblock %}">&#129408; Sea Foods</a>
-        </div>
         <button class="hamburger" id="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">
             <span class="bar"></span>
             <span class="bar"></span>
             <span class="bar"></span>
         </button>
+    </div>
+    <div class="nav-links" id="nav-menu">
+        <a href="/" class="nav-link-item {% block active_dashboard %}{% endblock %}">&#127968; Dashboard</a>
+        <a href="{% url 'monthly_loans' %}" class="nav-link-item {% block active_monthly %}{% endblock %}">&#128197; Monthly Loans</a>
+        <a href="{% url 'daily_loan_calculator' %}" class="nav-link-item {% block active_daily %}{% endblock %}">&#128198; Daily Loans</a>
+        <a href="{% url 'seafoods' %}" class="nav-link-item {% block active_seafoods %}{% endblock %}">&#129408; Sea Foods</a>
     </div>
 </nav>
 
